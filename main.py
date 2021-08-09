@@ -227,6 +227,7 @@ def main():
         sorted_res = sorted(res, key=lambda x: x.score, reverse=True)
         print('sorted res: ', sorted_res)
         # sleep(1)
+
     #t1.join()
 
 if __name__ == '__main__':

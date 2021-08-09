@@ -1,5 +1,5 @@
 import pyodbc
-
+#
 missing_score = {0: 10, 1: 8, 2: 6, 3: 4}
 
 def get_connection():
