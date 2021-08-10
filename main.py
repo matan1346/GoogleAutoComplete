@@ -10,6 +10,8 @@ from time import sleep
 import time
 import sys
 
+from TrieComplete import TrieAutoComplete, SourceData
+
 toolbar_width = 40
 
 # setup toolbar
@@ -17,7 +19,7 @@ toolbar_width = 40
 
 
 
-
+comp = TrieAutoComplete()
 main_db = {}
 minimized_db = {}
 db = {}
@@ -67,7 +69,10 @@ def all_files(path):
 def init(path_root='./', recreate=True):
     directory_name = path_root.split('\\')[-1]
     # return
-    global db
+    global db, comp
+
+
+
     if not recreate and os.path.isfile('sql/' + directory_name + '.pkl'):
         db = load_db()
         return
@@ -88,16 +93,19 @@ def init(path_root='./', recreate=True):
                 # continue
                 # chunks words as keys
                 #print('#########sentrence slicing: ', sentence)
+
                 for i in range(1, len(words)):
                     #print('# slice ', i, 'chuncks:')
                     for piece in splitter(i, words):
                         # insert_to_db(piece, sentence, file_path)
 
-                        insert_to_db_minimize(piece, line_number, sentence, file_path)
+                        comp.insert_word(piece, SourceData(file_path, line_number, 0, 0))
+
+                        #insert_to_db_minimize(piece, line_number, sentence, file_path)
 
                         #for every piece, we gonna add each missing position: ex. i like to play: like to play, i ike to play...
                         # print('#-# missing position: for ', piece)
-                        # continue
+
                         start_score = (len(piece) - 1) * 2
                         for pos in range(len(piece)):
                             current_score = start_score - 2
@@ -112,8 +120,8 @@ def init(path_root='./', recreate=True):
                             piece_addition_char = piece[:pos] + '.' + piece[pos+1:]
                             # insert_to_db(piece_addition_char, sentence, file_path, current_score)
                             # insert_to_db_minimize(piece_addition_char, line_number, sentence, file_path, current_score)
-        # break
-    save_db(minimized_db, directory_name)
+
+    # save_db(comp, directory_name)
 
 
 def query(q, main_db):
@@ -203,13 +211,17 @@ def main():
     #init_files()
     #print(main_db)
     print('Done!')
-    return
+
     while True:
         q = input("enter word: ")
         q = q.lower()
 
-        res = query(q, main_db)
-        print('regular res:', res)
+        #res = query(q, main_db)
+        res = comp.search_prefix(q, '')
+        print('suggestion auto complete:')
+        for i, item in enumerate(res):
+            print(f'{i}.: {item[0]}')
+        #print('regular res:', res)
         # sorted_res = sorted(res, key=lambda x: x.score, reverse=True)
         # print('sorted res: ', sorted_res)
         # sleep(1)
