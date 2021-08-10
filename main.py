@@ -7,6 +7,16 @@ import string
 import threading
 from time import sleep
 
+import time
+import sys
+
+toolbar_width = 40
+
+# setup toolbar
+
+
+
+
 
 main_db = {}
 minimized_db = {}
@@ -67,9 +77,9 @@ def init(path_root='./', recreate=True):
         print('file init: ', file_path)
 
         with open(file_path, 'r', encoding="utf8") as f:
-            line_number = 0
+            line_number = -1
             for line in f.readlines():
-
+                line_number += 1
                 sentence = line.rstrip()
                 words = sentence.translate(str.maketrans('', '', string.punctuation)).lower().split()
                 formatted_sentence = ' '.join(words)
@@ -81,12 +91,13 @@ def init(path_root='./', recreate=True):
                 for i in range(1, len(words)):
                     #print('# slice ', i, 'chuncks:')
                     for piece in splitter(i, words):
-                        insert_to_db(piece, sentence, file_path)
+                        # insert_to_db(piece, sentence, file_path)
 
                         insert_to_db_minimize(piece, line_number, sentence, file_path)
 
                         #for every piece, we gonna add each missing position: ex. i like to play: like to play, i ike to play...
                         # print('#-# missing position: for ', piece)
+                        # continue
                         start_score = (len(piece) - 1) * 2
                         for pos in range(len(piece)):
                             current_score = start_score - 2
@@ -100,7 +111,7 @@ def init(path_root='./', recreate=True):
                             # insert dot for addition char
                             piece_addition_char = piece[:pos] + '.' + piece[pos+1:]
                             # insert_to_db(piece_addition_char, sentence, file_path, current_score)
-                            insert_to_db_minimize(piece_addition_char, line_number, sentence, file_path, current_score)
+                            # insert_to_db_minimize(piece_addition_char, line_number, sentence, file_path, current_score)
         # break
     save_db(minimized_db, directory_name)
 
@@ -128,7 +139,7 @@ def query_add_character(q):
 
 
 def save_db(data, name_file):
-    a_file = open('data/' + name_file + '.pkl', "wb")
+    a_file = open('data-missing/' + name_file + '.pkl', "wb")
     pickle.dump(data, a_file)
     a_file.close()
 
@@ -157,10 +168,14 @@ def get_results_from_files(q):
 def init_files():
     files = all_files('data')
     # print(files)
-    global main_db
+    global main_db, toolbar_width
 
     for file in files[1:]:
         print(file)
+        #sys.stdout.write("[%s]" % (" " * toolbar_width))
+        #sys.stdout.flush()
+        #sys.stdout.write("\b" * (toolbar_width + 1))  # return to start of line, after '['
+
         current_db = load_db(file)
         # print(current_db)
 
@@ -168,7 +183,12 @@ def init_files():
             if k not in main_db:
                 main_db[k] = []
             main_db[k].extend(current_db[k])
+        # time.sleep(0.1)  # do real work here
+        # update the bar
+        #sys.stdout.write("-")
+        #sys.stdout.flush()
         break
+    # sys.stdout.write("]\n")  # this ends the progress bar
     # return main_db
 
 
@@ -176,7 +196,7 @@ def main():
     global main_db
     #res =splitter2(5, ['i','like','to','play','games'])
     #print(res)
-    init(r'.\2021-archive\python-3.8.4-docs-text\howto', recreate=True)
+    init(r'.\2021-archive\python-3.8.4-docs-text', recreate=True)
     #init(r'D:\Users\Matan\ExcellentTeam\Python Course\GoogleAutoComplete\2021-archive\RFC', recreate=True)
     #t1 = threading.Thread(target=init_files)
     #t1.start()
@@ -188,7 +208,7 @@ def main():
         q = input("enter word: ")
         q = q.lower()
 
-        res = query(q, minimized_db)
+        res = query(q, main_db)
         print('regular res:', res)
         # sorted_res = sorted(res, key=lambda x: x.score, reverse=True)
         # print('sorted res: ', sorted_res)
