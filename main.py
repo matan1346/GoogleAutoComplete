@@ -9,27 +9,13 @@ from time import sleep
 
 
 main_db = {}
-
-
-
-# I like to swim
-
-# user input: I luke to swim
-
-#  like to swim
-# . like to swim
-# I.like to swim
-
-
+minimized_db = {}
 db = {}
 
 missing_score = {0: 10, 1: 8, 2: 6, 3: 4}
 
-def splitter(n, s):
-    pieces = s.split()
-    return (" ".join(pieces[i:i+n]) for i in range(0, len(pieces), n))
 
-def splitter2(n, words):
+def splitter(n, words):
     new_list = []
     for i in range(0, len(words)-n+1):
         new_list += [" ".join(words[i:i+n])]
@@ -45,7 +31,13 @@ def insert_to_db(key, sentence, source, score = None):
     db[key] += [AutoCompleteData(sentence, source, sentence.find(key), score)]
 
 
-#i like to play
+def insert_to_db_minimize(key, line_number, sentence, source, score = None):
+    if key not in minimized_db:
+        minimized_db[key] = []
+
+    if score is None:
+        score = len(key) * 2
+    minimized_db[key] += (source, line_number, sentence.find(key), score) # [AutoCompleteData(sentence, source, sentence.find(key), score)]
 
 # lke to
 
@@ -53,6 +45,7 @@ def insert_to_db(key, sentence, source, score = None):
 def all_files(path):
     my_lst = []
     # print('try:', path)
+    # return [r'C:\Users\omesi\PycharmProjects\GoogleAutoComplete/file.txt']
     for filename in os.listdir(path):
         if filename.endswith(".pkl") or filename.endswith(".txt"):
             my_lst.append(path+'\\'+filename)
@@ -63,7 +56,6 @@ def all_files(path):
 
 def init(path_root='./', recreate=True):
     directory_name = path_root.split('\\')[-1]
-    #print(directory_name)
     # return
     global db
     if not recreate and os.path.isfile('sql/' + directory_name + '.pkl'):
@@ -75,6 +67,7 @@ def init(path_root='./', recreate=True):
         print('file init: ', file_path)
 
         with open(file_path, 'r', encoding="utf8") as f:
+            line_number = 0
             for line in f.readlines():
 
                 sentence = line.rstrip()
@@ -87,9 +80,10 @@ def init(path_root='./', recreate=True):
                 #print('#########sentrence slicing: ', sentence)
                 for i in range(1, len(words)):
                     #print('# slice ', i, 'chuncks:')
-                    for piece in splitter2(i, words):
+                    for piece in splitter(i, words):
                         insert_to_db(piece, sentence, file_path)
 
+                        insert_to_db_minimize(piece, line_number, sentence, file_path)
 
                         #for every piece, we gonna add each missing position: ex. i like to play: like to play, i ike to play...
                         # print('#-# missing position: for ', piece)
@@ -100,24 +94,15 @@ def init(path_root='./', recreate=True):
                                 current_score = start_score - missing_score[pos]
 
                             piece_misssing_char = piece[:pos] + piece[pos+1:]
-                            insert_to_db(piece_misssing_char, sentence,  file_path, current_score)
+                            # insert_to_db(piece_misssing_char, sentence,  file_path, current_score)
+                            insert_to_db_minimize(piece_misssing_char, line_number, sentence,  file_path, current_score)
 
                             # insert dot for addition char
                             piece_addition_char = piece[:pos] + '.' + piece[pos+1:]
-                            #print('\t\t', piece_misssing_char)
-                            #print('\t\t', piece_addition_char)
-                            insert_to_db(piece_addition_char, sentence, file_path, current_score)
+                            # insert_to_db(piece_addition_char, sentence, file_path, current_score)
+                            insert_to_db_minimize(piece_addition_char, line_number, sentence, file_path, current_score)
         # break
-    save_db(db, directory_name)
-    # save_sql(inserts, directory_name)
-                            # print('\t\t', piece[:pos] + piece[pos+1:])
-                        # print('#-# end missing position')
-
-                        #print(f'\t{piece}')
-                #print('######## End #########')
-                # exit()
-
-    #print(db)
+    save_db(minimized_db, directory_name)
 
 
 def query(q, main_db):
@@ -133,8 +118,6 @@ def query(q, main_db):
     return res
 
 
-
-
 def query_add_character(q):
     for i in range(len(q)):
         piece_addition_char = q[:i] + '.' + q[i+1:]
@@ -143,11 +126,6 @@ def query_add_character(q):
             return res
     return res
 
-
-def save_sql(inserts, file_name):
-    a_file = open('sql/' + file_name + '.txt', "w", encoding="utf8")
-    a_file.write(inserts)
-    a_file.close()
 
 def save_db(data, name_file):
     a_file = open('data/' + name_file + '.pkl', "wb")
@@ -166,20 +144,15 @@ def get_results_from_files(q):
     res = []
     for i in range(len(q)):
         queries.append(q[:i] + '.' + q[i+1:])
-        # print('hello')
     files = all_files('data')
-    # print(files)
     for file in files[1:]:
-        # print(file)
         current_db = load_db(file)
-        # print(current_db)
 
         for sentence in queries:
             if sentence in current_db:
                 res.append(current_db[sentence])
-
-
     return res
+
 
 def init_files():
     files = all_files('data')
@@ -194,10 +167,8 @@ def init_files():
         for k in current_db:
             if k not in main_db:
                 main_db[k] = []
-                #print(current_db[k])
             main_db[k].extend(current_db[k])
         break
-            # sleep(2)
     # return main_db
 
 
@@ -205,27 +176,22 @@ def main():
     global main_db
     #res =splitter2(5, ['i','like','to','play','games'])
     #print(res)
-    # init(r'C:\Users\omesi\PycharmProjects\AutocompleteProject\2021-archive\python-3.8.4-docs-text\whatsnew', recreate=True)
+    init(r'.\2021-archive\python-3.8.4-docs-text\howto', recreate=True)
     #init(r'D:\Users\Matan\ExcellentTeam\Python Course\GoogleAutoComplete\2021-archive\RFC', recreate=True)
     #t1 = threading.Thread(target=init_files)
     #t1.start()
-    init_files()
+    #init_files()
     #print(main_db)
-
+    print('Done!')
+    return
     while True:
         q = input("enter word: ")
         q = q.lower()
 
-        #res = get_results_from_files(q)
-
-        #res = query(q)
-        #if res is None:
-        #    print('not found regular, trying adding character')
-        #    res = query_add_character(q)
-        res = query(q, main_db)
+        res = query(q, minimized_db)
         print('regular res:', res)
-        sorted_res = sorted(res, key=lambda x: x.score, reverse=True)
-        print('sorted res: ', sorted_res)
+        # sorted_res = sorted(res, key=lambda x: x.score, reverse=True)
+        # print('sorted res: ', sorted_res)
         # sleep(1)
 
     #t1.join()
